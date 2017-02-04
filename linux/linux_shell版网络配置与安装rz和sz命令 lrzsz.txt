@@ -1,0 +1,24 @@
+1 安正常流程安装Linux，
+2 修改 /etc/sysconfig/network-scripts/incfg-eth0
+	onboot=no 改为 yes
+	bootroto=*** 改为 static
+	添加:
+	IPADDR=192.168.1.240
+	NETMAST=255.255.255.0
+	GATEWAY=192.168.1.1
+	DNS1=8.8.8.8
+	DSN2=114.114.114.114
+3 修改退出，重启网络
+	service network restart
+4 安装lrzsz l
+	rzsz在linux里可代替ftp上传和下载。
+	lrzsz 官网入口：http://freecode.com/projects/lrzsz/ 
+	lrzsz是一个unix通信套件提供的X，Y，和ZModem文件传输协议
+	
+	// 首先安装lrzsz 
+	# yum -y install lrzsz 
+	// 传文件，执行命令rz，会跳出文件选择窗口，选择好文件，点击确认即可。
+	# rz
+	// 下载文件，执行命令sz
+	# sz
+	

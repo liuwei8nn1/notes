@@ -157,6 +157,9 @@ paths:
 
 Í¬ÑùÊÇĞŞ¸Äfilebeat.ymlÎÄ¼ş£¬½«output.elasticsearch×¢ÊÍµô£¬²¢´ò¿ªLogstashµÄ×¢ÊÍ£¬ĞŞ¸ÄÄÚÈİÈçÏÂ£º
 
+#output.elasticsearch:
+output.logstash:
+
 hosts:["localhost:5044"]
 
 
@@ -172,6 +175,13 @@ Filebeat½«³¢ÊÔÔÚ¶Ë¿Ú5044ÉÏÁ¬½Ó¡£Ö±µ½LogstashÌ½²âµ½»î¶¯µÄBeats²å¼ş¿ªÊ¼£¬¸Ã¶Ë¿Ú½«²
 
 Èç¹ûÅäÖÃ³É¹¦µÄ»°£¬¾Í»áÈ¥¶ÁÈ¡ÄãÖ¸¶¨µÄÈÕÖ¾ÎÄ¼ş£¬
 
+Æô¶¯½Å±¾£º
+vim startFilebeat.sh
+¼ÓÈëÈçÏÂ
+#!/bin/bash
+./filebeat -e -c filebeat.yml -d "publish"
+Ìí¼ÓÖ´ĞĞÈ¨ÏŞ
+chmod +x startFilebeat
 
 £¨6£©ĞŞ¸ÄLogstashµÄÅäÖÃÎÄ¼ş
 
@@ -193,13 +203,13 @@ output {
 
 ÒªÑéÖ¤ÄúµÄÅäÖÃ£¬ÇëÔËĞĞÒÔÏÂÃüÁî£º
 
-bin/logstash -f logstash.conf --config.test_and_exit
+./bin/logstash -f logstash.conf --config.test_and_exit
 
 --config.test_and_exit Ñ¡Ïî½«½âÎöÅäÖÃÎÄ¼ş²¢±¨¸æÈÎºÎ³öÏÖ´íÎóµÄ´íÎó¡£
 
 Èç¹ûÅäÖÃÎÄ¼şÍ¨¹ıÅäÖÃ²âÊÔ£¬ÇëÊ¹ÓÃÒÔÏÂÃüÁîÆô¶¯Logstash£º
 
-bin/logstash -f logstash.conf --config.reload.automatic
+./bin/logstash -f logstash.conf --config.reload.automatic
 
 --config.reload.automatic?Ñ¡ÏîÆôÓÃ×Ô¶¯ÅäÖÃÖØĞÂ¼ÓÔØ£¬ÕâÑùµÄ»°Äã¾Í²»±ØÔÚÃ¿´ÎĞŞ¸ÄÅäÖÃÎÄ¼şÊ±Í£Ö¹ºÍÖØĞÂÆô¶¯Logstash¡£
 

@@ -121,6 +121,11 @@ elasticsearch.url: "http://localhost:9200"
 三、启动Kibana
 
 在bin目录下使用命令：./kibana 启动：
+如报：
+kibana Unable to connect to elasticsearch at http://localhost:9200
+
+解决方法：
+修改kibana.yml配置，添加elasticsearch.ssl.verify: false
 
 可以看到kibana正在5601端口监听，使用游览器访问！
 

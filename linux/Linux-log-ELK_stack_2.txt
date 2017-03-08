@@ -20,13 +20,13 @@ Elasticsearch的安装
 wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.2.1.tar.gz
 
 
-使用tar -xvf elasticsearch-5.2.1.tar?命令解压，使用cd命令进入文件夹目录：
+使用tar -xvf elasticsearch-5.2.1.tar 命令解压，使用cd命令进入文件夹目录：
 
 
 
 二、启动Elasticsearch
 
-进入bin目录，使用./elasticsearch?命令启动elasticsearch：
+进入bin目录，使用./elasticsearch 命令启动elasticsearch：
 
 
 
@@ -108,7 +108,7 @@ Kibana的配置文件是在config/kibana.yml
 server.host: "0.0.0.0"
 
 
-将IP地址修改为?0.0.0.0?表示全匹配！
+将IP地址修改为 0.0.0.0 表示全匹配！
 
 （2）指定要进行连接到Elasticsearch
 

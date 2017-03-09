@@ -15,7 +15,8 @@ docker pull hub.c.163.com/public/centos:6.5
 docker images 查看镜像
 docker ps 	查看运行中的镜像
 docker ps -a 查看所有镜像
-docker sava -o 文件名 镜像名或ID	#保存镜像为文件
+docker commit 39b2cf60a4c1 alan/docdemo
+docker save -o 文件名 镜像名或ID	#保存镜像为文件
 dicker load --input 文件名			#加载镜像文件
 镜像下载到本地以后，就可以使用Docker运行，
 通过下面的命令参数启动容器，

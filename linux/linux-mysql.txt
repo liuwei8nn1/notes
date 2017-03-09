@@ -2,55 +2,120 @@
 
 ./bin/mysqld --initialize --basedir=/usr/local/src/mysql --datadir=/usr/local/src/mysql/data
 
-
+修改密码：
 方法1： 用SET PASSWORD命令 
 首先登录MySQL。 
 格式：mysql> set password for 用户名@localhost = password('新密码'); 
 例子：mysql> set password for root@localhost = password('123'); 
-
 方法2：用mysqladmin 
 格式：mysqladmin -u用户名 -p旧密码 password 新密码 
 例子1：mysqladmin -uroot -p123456 password 123 
 例子2: mysqladmin -uroot -p password
-
 方法3：用UPDATE直接编辑user表 
 首先登录MySQL。 
 mysql> use mysql; 
 mysql> update user set password=password('123') where user='root' and host='localhost'; 
 mysql> flush privileges; 
 
+远程登录：
 /usr/local/mysql/bin/mysql -u root -p
-
 修改 Mysql-Server 用户配置
-
-
 mysql> USE mysql; -- 切换到 mysql DB
-
 Database changed
-
 mysql> SELECT User, Password, Host FROM user; -- 查看现有用户,密码及允许连接的主机
-
 +------+----------+-----------+
 | User | Password | Host      |
 +------+----------+-----------+
 | root |          | localhost |
 +------+----------+-----------+
 1 row in set (0.00 sec)
-
- 
-
 mysql> -- 只有一个默认的 root 用户, 密码为空, 只允许 localhost 连接
 12
 mysql> -- 下面我们另外添加一个新的 root 用户, 密码为空, 只允许 192.168.1.100 连接
-
 mysql> GRANT ALL PRIVILEGES ON *.* TO 'root'@'192.168.1.100' IDENTIFIED BY '' WITH GRANT OPTION;
-
- 
-
 mysql> -- @'192.168.1.100'可以替换为@‘%’就可任意ip访问，当然我们也可以直接用 UPDATE 更新 root 用户 Host, 但不推荐, SQL如下:
-
 mysql> -- UPDATE user SET Host='192.168.1.100' WHERE User='root' AND Host='localhost' LIMIT 1;
-
 mysql> flush privileges;
-
 Query OK, 0 rows affected (0.00 sec)
+
+MySQL的启动方法:
+1：使用mysqld启动、关闭MySQL服务
+?? mysqld是MySQL的守护进程，我们可以用mysqld来启动、关闭MySQL服务，关于mysqld, MySQL 5.6官方介绍资料如下所示：
+mysqld, also known as MySQL Server, is the main program that does most of the work in a MySQL installation. MySQL Server manages access to the MySQL data directory that contains databases and tables. The data directory is also the default location for other information such as log files and status files.
+When MySQL server starts, it listens for network connections from client programs and manages access to databases on behalf of those clients.
+The mysqld program has many options that can be specified at startup. For a complete list of options, run this command:
+shell> mysqld --verbose --help
+MySQL Server also has a set of system variables that affect its operation as it runs. System variables can be set at server startup, and many of them can be changed at runtime to effect dynamic server reconfiguration. MySQL Server also has a set of status variables that provide information about its operation. You can monitor these status variables to access runtime performance characteristics.
+如果MySQL是rpm方式安装的话，mysqld位于/usr/sbin下，如果MySQL是二进制安装的话，mysqld则位于bin目录下面。
+[root@localhost ~]# whereis mysqld
+mysqld: /usr/sbin/mysqld /usr/share/man/man8/mysqld.8.gz
+[root@localhost ~]# /usr/sbin/mysqld stop
+2016-06-27 14:52:54 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2016-06-27 14:52:54 9315 [ERROR] Fatal error: Please read "Security" section of the manual to find out how to run mysqld as root!
+2016-06-27 14:52:54 9315 [ERROR] Aborting
+2016-06-27 14:52:54 9315 [Note] Binlog end
+2016-06-27 14:52:54 9315 [Note] /usr/sbin/mysqld: Shutdown complete
+[root@localhost ~]# /usr/sbin/mysqld start
+2016-06-27 14:52:59 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2016-06-27 14:52:59 9316 [ERROR] Fatal error: Please read "Security" section of the manual to find out how to run mysqld as root!
+2016-06-27 14:52:59 9316 [ERROR] Aborting
+2016-06-27 14:52:59 9316 [Note] Binlog end
+2016-06-27 14:52:59 9316 [Note] /usr/sbin/mysqld: Shutdown complete
+
+2：使用mysqld_safe启动、关闭MySQL服务
+很多时候，人们会纠结mysqld与mysqld_safe的区别. 其实mysqld_safe是一个脚本，一个非常安全的启动、关闭MySQL服务的脚本。它实际上也是调用mysqld来启动、关闭MySQL服务。关于mysqld_safe，可以参考官方文档mysqld_safe — MySQL Server Startup Script
+
+3：使用mysql.server启动、关闭MySQL服务
+[root@localhost mysql]# ./mysql.server? stop
+Shutting down MySQL..[? OK? ]
+[root@localhost mysql]# ./mysql.server? start
+Starting MySQL..[? OK? ]
+[root@localhost mysql]# 
+mysql.server其实也是一个脚本，它通过调用msqld_safe来启动、关闭MySQL服务。部分脚本脚本如下
+[root@localhost mysql]# more mysql.server 
+#!/bin/sh
+# Copyright Abandoned 1996 TCX DataKonsult AB & Monty Program KB & Detron HB
+# This file is public domain and comes with NO WARRANTY of any kind
+# MySQL daemon start/stop script.
+# Usually this is put in /etc/init.d (at least on machines SYSV R4 based
+# systems) and linked to /etc/rc3.d/S99mysql and /etc/rc0.d/K01mysql.
+# When this is done the mysql server will be started when the machine is
+# started and shut down when the systems goes down.
+# Comments to support chkconfig on RedHat Linux
+# chkconfig: 2345 64 36
+# description: A very fast and reliable SQL database engine.
+# Comments to support LSB init script conventions
+### BEGIN INIT INFO
+# Provides: mysql
+# Required-Start: $local_fs $network $remote_fs
+# Should-Start: ypbind nscd ldap ntpd xntpd
+# Required-Stop: $local_fs $network $remote_fs
+?
+4：使用mysqld_multi启动、关闭MySQL服务
+当服务器上运行了多个MySQL实例时，mysqld_multi是一个非常棒的管理MySQL服务器的工具。当然在使用前，你必须提前做配置
+[root@localhost mysql]# /usr/bin/mysqld_multi stop 1
+[root@localhost mysql]# /usr/bin/mysqld_multi start 1
+mysqld_multi is designed to manage several mysqld processes that listen for connections on different Unix socket files and TCP/IP ports. It can start or stop servers, or report their current status.
+mysqld_multi searches for groups named [mysqldN] in my.cnf (or in the file named by the --defaults-file option). N can be any positive integer. This number is referred to in the following discussion as the option group number, or GNR. Group numbers distinguish option groups from one another and are used as arguments tomysqld_multi to specify which servers you want to start, stop, or obtain a status report for. Options listed in these groups are the same that you would use in the[mysqld] group used for starting mysqld. (See, for example, Section 2.10.5, “Starting and Stopping MySQL Automatically”.) However, when using multiple servers, it is necessary that each one use its own value for options such as the Unix socket file and TCP/IP port number. For more information on which options must be unique per server in a multiple-server environment, see Section 5.6, “Running Multiple MySQL Instances on One Machine”.
+
+5：使用service 启动、关闭MySQL服务
+service mysql start
+service mysql stop
+service mysql restart
+其实如果你对service比较熟悉的话，就会知道运行上面命令，其实是service命令去找/etc/init.d下的相关的mysql脚本去执行启动、关闭动作。
+[root@DB-Server init.d]# ls my*
+mysql? mysql.server
+[root@DB-Server init.d]# 
+?
+6: 使用/etc/init.d/mysql启动、关闭MySQL服务。
+??? 如果你非常了解方法5，那么就多了这么一个启动数据库的方式。其实/etc/init.d/mysql也是一个脚本，它调用mysqld_safe脚本来启动MySQL服务。如下所示，你会看到相关代码
+[root@DB-Server bin]# /etc/init.d/mysql start
+Starting MySQL....[? OK? ]
+[root@DB-Server bin]# /etc/init.d/mysql stop
+Shutting down MySQL..[? OK? ]
+[root@DB-Server bin]# 
+
+7：使用mysqladmin关闭数据库
+????? mysqladmin是一个执行管理操作的客户程序，这个命令可以使用安全模式关闭数据库，但是不能启动数据库。当然它可以停止和启动MySQL replication on a slave server
+[root@DB-Server bin]# /usr/bin/mysqladmin -u root -p shutdown
+Enter password:

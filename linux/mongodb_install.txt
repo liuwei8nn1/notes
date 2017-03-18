@@ -1,22 +1,22 @@
 系统:CentOS6.6
-[root@alan ~]#?cd /home/app/mongo/
+[root@alan ~]# cd /home/app/mongo/
 下载安装包
-[root@alan mongo]#?wget http://fastdl.mongodb.org/linux/mongodb-linux-i686-1.8.2.tgz
+[root@alan mongo]# wget http://fastdl.mongodb.org/linux/mongodb-linux-i686-1.8.2.tgz
 [root@alan mongo]# ls
 mongodb-linux-i686-1.8.2.tgz
 [root@alan mongo]# tar zxf mongodb-linux-i686-1.8.2.tgz 
 [root@alan mongo]# ls
 mongodb-linux-i686-1.8.2  mongodb-linux-i686-1.8.2.tgz
-[root@alan mongo]#?mkdir /usr/local/mongodb
-[root@alan mongo]#?mv mongodb-linux-i686-1.8.2 /usr/local/mongodb/server
+[root@alan mongo]# mkdir /usr/local/mongodb
+[root@alan mongo]# mv mongodb-linux-i686-1.8.2 /usr/local/mongodb/server
 [root@alan mongo]# cd /usr/local/mongodb/server/
 [root@alan server]# ls
 bin  GNU-AGPL-3.0  README  THIRD-PARTY-NOTICES
 [root@alan server]#
-[root@alan server]#?mkdir data
+[root@alan server]# mkdir data
 [root@alan server]#vi logs
 启动mongodb
-/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend ?--port=27017 --fork 
+/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend  --port=27017 --fork 
 报错：
 mongod: error while loading shared libraries: libstdc++.so.6
 解决方法
@@ -28,11 +28,11 @@ mongod: error while loading shared libraries: libstdc++.so.6
 [root@alan server]#yum whatprovides libstdc++.so.6
 Loaded plugins: fastestmirror, refresh-packagekit, security
 Loading mirror speeds from cached hostfile
-?* base: mirrors.skyshe.cn
-?* extras: mirrors.pubyun.com
-?* updates: mirrors.pubyun.com
-libstdc++-4.4.7-16.el6.i686?: GNU Standard C++ Library
-Repo       ?: base
+ * base: mirrors.skyshe.cn
+ * extras: mirrors.pubyun.com
+ * updates: mirrors.pubyun.com
+libstdc++-4.4.7-16.el6.i686 : GNU Standard C++ Library
+Repo        : base
 Matched from:
 Other       : libstdc++.so.6
 2、然后执行：
@@ -65,7 +65,7 @@ test
 >           
 开机启动
 [root@alan server]#cat /etc/rc.local | grep mongo
-/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend ?--auth ?--port=27017 --fork
+/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend  --auth  --port=27017 --fork
 [root@alan server]#
 [root@alan server]#reboot
 Connecting to 192.168.1.51:22...
@@ -132,7 +132,7 @@ export PATH=$MONGONDB_HOME/bin:$PATH
 --noscripting             disable scripting engine 关闭脚本引擎
 --noprealloc              disable data file preallocation 关闭数据库文件大小预分配
 --smallfiles              use a smaller default file size 使用较小的默认文件大小
---nssize arg (=16)       ?.ns file size (in MB) for new databases 新数据库ns文件的默认大小
+--nssize arg (=16)        .ns file size (in MB) for new databases 新数据库ns文件的默认大小
 --diaglog arg             0=off 1=W 2=R 3=both 7=W+some reads 提供的方式，是只读，只写，还是读写都行，还是主要写+部分的读模式
 --sysinfo                 print some diagnostic system information 打印系统诊断信息
 --upgrade                 upgrade db if needed 如果需要就更新数据库

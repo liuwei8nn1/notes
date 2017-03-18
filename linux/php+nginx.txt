@@ -1,0 +1,127 @@
+Linux下安装php环境并且配置Nginx支持php-fpm模块
+　　以下以CentOS 7.2为例，安装php的运行环境，首先打开php官网http://php.net/点击导航栏的Downloads进入下载页面：http://php.net/downloads.php
+
+　　这里下载的php 7.0.5 的源码包：
+
+
+　　下载下来之后上传至服务器
+
+　　因为php安装需要编译，所以服务器应该保证gcc和g++环境的安装
+
+　　首先释放安装包：
+
+	tar -xvzf php-7.0.5.tar.gz
+	cd php-7.0.5
+　　接下来进行参数配置，配置前如果没有libxml2和libxml2-devel会报错，所以应该更新libxml2并安装libxml2-devel，使用在线安装：
+
+	yum -y install libxml2
+	yum -y install libxml2-devel
+　　补充，因为不同的操作系统环境，系统安装开发环境包的完整程度也不相同，所以建议安装操作系统的时候做必要选择，也可以统一执行一遍所有的命令，
+	将没有安装的组件安装好，如果已经安装了可能会进行升级，版本完全一致则不会进行任何操作，命令除上面2个之外，汇总如下：
+	yum -y install openssl
+	yum -y install openssl-devel
+	yum -y install curl
+	yum -y install curl-devel
+	yum -y install libjpeg
+	yum -y install libjpeg-devel
+	yum -y install libpng
+	yum -y install libpng-devel
+	yum -y install freetype
+	yum -y install freetype-devel
+	yum -y install pcre
+	yum -y install pcre-devel
+	yum -y install libxslt
+	yum -y install libxslt-devel
+	yum -y install bzip2
+	yum -y install bzip2-devel
+
+　　以上这些包基本上够用了，如果发现问题再补充，安装完成之后，执行配置：
+
+	./configure --prefix=/usr/local/php --with-curl --with-freetype-dir --with-gd --with-gettext --with-iconv-dir --with-kerberos --with-libdir=lib64 --with-libxml-dir --with-mysqli --with-openssl --with-pcre-regex --with-pdo-mysql --with-pdo-sqlite --with-pear --with-png-dir --with-jpeg-dir --with-xmlrpc --with-xsl --with-zlib --with-bz2 --with-mhash --enable-fpm --enable-bcmath --enable-libxml --enable-inline-optimization --enable-gd-native-ttf --enable-mbregex --enable-mbstring --enable-opcache --enable-pcntl --enable-shmop --enable-soap --enable-sockets --enable-sysvsem --enable-sysvshm --enable-xml --enable-zip
+　　
+	实际上这里的配置项比上cd 述还多，可以使用 ./configure --help 命令查看所有选项，这里注意在php7中--with-mysql原生支持已经不存在了，操作都变成mysqli或者pdo了；以上这些选项在正常的php开发中完全够用了，后期如果需要，可以选择手动开启相应的模块
+
+　　然后执行编译：
+
+	make
+　　编译时间可能会有点长，编译完成之后，执行安装：
+
+	make install
+　　php的默认安装位置上面已经指定为/usr/local/php，接下来配置相应的文件：
+
+	cp php.ini-development /usr/local/php/lib/php.ini
+	cp /usr/local/php/etc/php-fpm.conf.default /usr/local/php/etc/php-fpm.conf
+	cp sapi/fpm/php-fpm /usr/local/bin
+　　然后设置php.ini，使用： vim /usr/local/php/lib/php.ini 打开php配置文件找到cgi.fix_pathinfo配置项，这一项默认被注释并且值为1，根据官方文档的说明，这里为了当文件不存在时，阻止Nginx将请求发送到后端的PHP-FPM模块，从而避免恶意脚本注入的攻击，所以此项应该去掉注释并设置为0
+
+　　设置完毕保存并退出
+
+　　另外注意一个地方就是php.ini配置文件的位置可以在编译前配置参数中设置，编译参数可以写成：--with-config-file-path=/usr/local/php 这样的话php就回去指定的目录下读取php.ini配置文件，如果不加这个参数默认位置就是php安装目录下的lib目录，具体也可以在phpinfo()输出界面查看，如果php.ini放到其他位置，php读取不到，那么所有的配置修改后都是不生效的，这点要注意
+
+　　此时首先应该创建web用户：
+
+	groupadd www-data
+	useradd -g www-data www-data
+	
+　　然后网上一些教程说让修改php-fpm.conf添加以上创建的用户和组，这时候使用 vim /usr/local/php/etc/php-fpm.conf 打开文件后找不到官方所提示的位置：
+
+　　
+
+　　如果此时随便在一个位置添加，那么接下来启动php-fpm的时候，会报目录找不到的错误，所以不要在php-fpm.conf中添加用户和组，这个时候翻到php-fpm.conf最后一行会发现如下内容(如果编译时添加--prefix选项以下位置会自动补全，默认是下面是空的，要注意)：
+
+　　include=NONE/etc/php-fpm.d/*.conf
+
+　　这里引入了php-fpm.d目录下所有的conf配置文件，但是NONE需要修改为我们的实际目录：/usr/local/php
+
+　　
+
+　　默认情况下etc/php-fpm.d/下有一个名为www.conf.defalut的配置用户的文件，执行下面命令复制一个新文件并且打开：
+
+	cp /usr/local/php/etc/php-fpm.d/www.conf.default /usr/local/php/etc/php-fpm.d/www.conf
+	vim /usr/local/php/etc/php-fpm.d/www.conf
+　　默认user和group的设置为nobody，将其改为www-data
+	user = www-data
+	group = www-data
+
+　　修改完成之后，保存并退出，然后执行以下命令启动php-fpm服务：
+
+	/usr/local/bin/php-fpm
+	
+　　启动完毕之后，php-fpm服务默认使用9000端口，使用 netstat -tln | grep 9000 可以查看端口使用情况：
+
+　　9000端口正常使用，说明php-fpm服务启动成功
+
+　　然后执行 vim /usr/local/nginx/nginx.conf 编辑nginx配置文件，具体路径根据实际的nginx.conf配置文件位置编辑，下面主要修改nginx的server {}配置块中的内容，修改location块，追加index.php让nginx服务器默认支持index.php为首页：
+
+	location / {
+             root   html;
+             index  index.html index.htm index.php;
+         }
+　　
+
+　　然后配置.php请求被传送到后端的php-fpm模块，默认情况下php配置块是被注释的，此时去掉注释并修改为以下内容：
+
+　　location ~ \.php$ {
+			root           html;
+			fastcgi_pass   127.0.0.1:9000;
+			fastcgi_index  index.php;
+			fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+			include        fastcgi_params;
+		}
+
+　　这里面很多都是默认的，root是配置php程序放置的根目录，主要修改的就是fastcgi_param中的/scripts为$document_root
+
+　　修改完上面的，回到nginx.conf第一行，默认是#user nobody;  这里要去掉注释改为user www-data;或者user www-data www-data;表示nginx服务器的权限为www-data
+
+　　修改完这些保存并退出，然后重启nginx：
+
+	/usr/local/nginx/nginx -s stop
+	/usr/local/nginx/nginx 
+　　接下来编辑一个测试的php程序，在nginx下的html目录下创建test.php文件，打印一下php配置：
+
+	< php
+		phpinfo();
+	>
+　　然后打开浏览器输入对应的地址进行访问，看到输出页面，说明nginx和php都配置成功了：
+
+原文地址：http://www.cnblogs.com/freeweb/p/5425554.html

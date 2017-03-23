@@ -1,0 +1,21 @@
+IntelliJ IDEA 16 本地LicenseServer激活（破解）
+两个注册地址：
+http://idea.lanyus.com/
+http://idea.qinxi1992.cn/
+IntelliJ IDEA 是Java开发利器，用社区版不爽，干催就用旗舰版，这个是收费的，需要licence。 
+网上找到了一个帖子 http://blog.csdn.net/rickyit/article/details/50600723，可以通过服务器激活。 
+IntelliJ IDEA 16激活不了，架构师推荐了本地服务器激活。 (百度云上有)
+压缩包地址： http://pan.baidu.com/s/1eRXm2zS 密码：orp9 
+1. 先不要启动IDEA，解压后点击IntelliJIDEALicenseServer_windows_amd64.exe ，我的是64位系统的。 
+32位点击IntelliJIDEALicenseServer_windows_386.exe 
+ 
+2. 启动服务，获取激活地址：http://127.0.0.1:1017 
+ 
+3. 启动IDEA,注册时通过license server 注册，输入本地服务器地址 
+ 
+4. 激活成功 
+ 
+比较不爽的是每次启动IDEA都要先启动IntelliJIDEALicenseServer。可以参考http://www.win7u.com/jc/2676.html 
+把exe注册为服务。这样每次启动idea的时候就不用再点击exe了。 
+
+这里根据实际操作写了个博文，可以参考一下！实测有效！

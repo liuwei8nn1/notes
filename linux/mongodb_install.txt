@@ -16,7 +16,7 @@ bin  GNU-AGPL-3.0  README  THIRD-PARTY-NOTICES
 [root@alan server]#?mkdir data
 [root@alan server]#vi logs
 启动mongodb
-/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend ?--port=27017 --fork 
+/usr/local/mongodb/server/bin/mongod --dbpath=/usr/local/mongodb/server/data --logpath=/usr/local/mongodb/server/logs --logappend --port=27017 --fork 
 报错：
 mongod: error while loading shared libraries: libstdc++.so.6
 解决方法
@@ -74,6 +74,11 @@ Connection established.
 MongoDB shell version: 1.8.2
 connecting to: test
 >
+Mongodb 启动警告
+启动命令前加上：
+numactl --interleave
+如：
+numactl --interleave=all mongod [other options]
 
 Mongodb的关闭:
 前台运行:

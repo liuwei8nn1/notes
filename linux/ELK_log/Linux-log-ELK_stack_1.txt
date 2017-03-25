@@ -1,0 +1,219 @@
+Linux操作系统安装ELK stack日志管理系统--（1）Logstash和Filebeat的安装与使用
+
+前言
+
+（1）ELK是Elasticsearch，Logstash，Kibana 开源软件的集合，对外是作为一个日志管理系统的开源方案。它可以从任何来源，任何格式进行日志搜索，分析获取数据，并实时进行展示。
+
+（2）基本软件作用如下：
+
+1、Filebeat：监控日志文件、转发，获取指定路径的日志文件，传输日志文件给Logstash；
+
+2、Logstash: 日志收集，管理，存储，转发日志给Elasticsearch进行处理；
+
+3、Elasticsearch：搜索，提供分布式全文搜索引擎，搜索是实时进行处理的，对数据进行索引和聚合等；
+
+4、Kibana ：日志的过滤web展示，图形界面话操作日志记录。别名Elasticsearch Dashboard?
+顾名思义是基于游览器的Elasticsearch分析和仪表盘工具；
+（3）官网地址：https://www.elastic.co
+
+（4）分支软件官方文档地址：
+
+1、Logstash官方文档地址：https://www.elastic.co/guide/en/logstash/current/index.html
+
+2、Filebeat官方文档地址：https://www.elastic.co/guide/en/beats/filebeat/current/index.html
+
+3、Elasticsearch官方文档地址：https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html
+
+4、Kibana 官方文档地址：https://www.elastic.co/guide/en/kibana/current/index.html
+
+ELK之间的架构关系
+
+最简单的一个安装ELK的架构图如下：
+
+tomcat---1---|
+			 |
+			Filebeat---3--->Logstash---4--->Elastisearch---5--->Kibana
+			 |
+tomcat---2---|
+
+以下是各数字代表箭头的含义：
+
+（1）第1、2步代表使用FileBeat获取Tomcat服务器上的日志。当启动Filebeat时，它将启动一个或多个prospectors （检测者），查找Tomcat上指定的日志文件，作为日志的源头等待输出到Logstash。
+
+（2）第3步代表Logstash从FileBeat获取日志文件。Filebeat作为Logstash的输入input将获取到的日志进行处理（FileBeat其实就是Logstash的一个输入插件beats，具体的处理过程后边学习），将处理好的日志文件输出到Elasticsearch进行处理。
+
+（3）第4步代表Elasticsearch得到Logstash的数据之后进行相应的搜索存储操作。将写入的数据可以被检索和聚合等以便于搜索操作。
+
+（4）第5代表Kibana 通过Elasticsearch提供的API将日志信息可视化的操作。
+
+上述的1-5步骤中，我们可以看出一个Tomcat服务器产生的日志文件，如何由ELK系统获取，传输，处理，存储，可视化等操作的。
+
+明白了ELK个软件的关系，那么安装起来就相对简单了很多，不会出现他们之间不知道具有什么关系的问题，下边就开始具体的安装过程。
+
+Logstash安装与使用
+
+Logstash官方文档地址：https://www.elastic.co/guide/en/logstash/current/index.html
+
+根据上图中的架构图的话，应该是先安装FileBeat的，其实FileBeat只是Logstash的一个输入插件beats，Logstash具有很多输入插件，例如：标准输入插件stdin、文件输入插件file、syslog输入插件等等。
+
+具体的Logstash输入插件可以参考官方文档：https://www.elastic.co/guide/en/logstash/current/input-plugins.html
+
+既然，Logstash可以有多个输入插件，那么就使用最简单的方式进行Logstash的安装与验证工作。
+
+一、Logstash安装
+
+（1）确保JDK版本为1.8以上
+
+（2）下载Logstash并解压
+
+下载地址：https://www.elastic.co/downloads/logstash
+
+选择tar.gz右键复制下载地址！
+
+这里为：https://artifacts.elastic.co/downloads/logstash/logstash-5.2.1.tar.gz
+
+（3）使用wget下载：
+	wget https://artifacts.elastic.co/downloads/logstash/logstash-5.2.1.tar.gz
+	
+（4）等待下载完成后解压：
+
+使用tar -xvf logstash-5.1.1.tar.gz?命令解压文件，解压后使用cd命令进入文件夹内部：
+
+主要文件夹包含bin、data、lib、config等。其中bin包含了一写可执行脚本文件，data是用于存储数据的，lib是一些系统所依赖的jar文件，config包含一些配置文件。
+
+（5）要测试Logstash安装，运行最基本的Logstash管道：
+
+	cd logstash-5.1.1
+	bin/logstash -e 'input { stdin {} } output { stdout {} }'
+
+	-e 参数表示执行后边的语句，标志使您能够直接从命令行指定配置。在命令行中指定配置允许您快速测试配置，而无需在迭代之间编辑文件。示例中的管道从标准输入stdin获取输入，并以结构化格式将输入移动到标准输出stdout。
+
+（6）等待片刻等提示信息之后(要小等会)，就可以在控制台输入任何内容，他都会输出：
+
+至此，一个Logstash的安装与使用完成！
+
+二、Logstash使用配置文件的方式运行
+
+上述，是通过命令行运行的，下边就是通过配置文件运行的一个完整的例子：
+
+首先创建一个名为logstash.conf的配置文件放置在logstash-5.1.1目录下，内容就是刚才使用命令行方式的代码，如下：
+
+input {
+	stdin {
+	}
+}
+output {
+	stdout {
+	}
+}
+
+然后在终端上运行：
+
+bin/logstash -f logstash.conf
+
+-f 表示指定使用哪一个配置文件进行执行。
+
+三、Logstash基本原理
+
+Logstash管道有两个必需的元素，输入和输出，以及一个可选元素，过滤器。输入插件从源消耗数据，过滤器插件根据您指定的内容修改数据，输出插件将数据写入目标。如下图：
+
+Data Source------>Logstash Pipeline(input,filters,outputs)------>Elasticsearch
+
+Logstash事件处理管道有三个阶段：输入→过滤器→输出。输入生成事件，过滤器修改它们，并将输出发送到其他地方。输入和输出支持编解码器，使您能够在数据进入或退出流水线时对其进行编码或解码，而无需使用单独的过滤器。也就是说，其实Logstash是一个input–decode –filter–encode–output的数据流！
+
+使用Filebeat将日志行发送到Logstash
+
+在创建Logstash管道之前，可以配置Filebeat以将日志行发送到Logstash。Filebeat客户端是一个轻量级的，资源友好的工具，他可以从服务器上的文件中收集日志，并将这些日志转发到Logstash实例进行处理。
+
+Filebeat设计用于可靠性和低延迟。 Filebeat占用主机上轻量级的资源，Beats input插件可以最大限度地减少对Logstash实例的资源需求。
+
+注意：
+
+在实际的开发和生产环境中，Filebeat在运行Logstash实例机器的单独机器上运行。为了本教程的目的，Logstash和Filebeat在同一台机器上运行。
+默认情况下Logstash安装的时候，已经包括Beats输入插件。Beats输入插件使Logstash能够从Elastic Beats框架中接收事件，这意味着任何写入Beat框架的Beat（如Packetbeat和Metricbeat）都可以将事件数据发送到Logstash。
+
+一、下载安装Filebeat
+
+由于新版本中已经默认安装了Filebeat插件，下边只是简要介绍：
+
+（1）下载地址：https://www.elastic.co/downloads/beats/filebeat
+
+（2）同样选择linux 64-bit右键复制下载地址，通过wget下载：
+	wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-5.2.1-linux-x86_64.tar.gz
+	
+（3）通过tar -xvf filebeat-5.2.1-Linux-x86_64.tar.gz?解压：
+
+（4）修改配置文件将Tomcat服务器和Filebeat连接起来：
+
+打开位于Filebeat安装目录中的filebeat.yml文件，修改需要检测的Tomcat服务器的文件位置：
+
+input_type: log
+paths:
+	- /usr/tomcat/log/*.log
+
+其中：/usr/tomcat/log/*.log 是我Tomcat服务器下项目的日志文件。并且已经开启了Tomcat。
+
+（5）修改配置文件将Filebeat和Logstash连接起来：
+
+同样是修改filebeat.yml文件，将output.elasticsearch注释掉，并打开Logstash的注释，修改内容如下：
+
+#output.elasticsearch:
+output.logstash:
+
+hosts:["localhost:5044"]
+
+
+保存更改。
+
+（6）启动Filebeat
+
+在数据源计算机上，使用以下命令运行Filebeat：
+
+./filebeat -e -c filebeat.yml -d "publish"
+
+Filebeat将尝试在端口5044上连接。直到Logstash探测到活动的Beats插件开始，该端口将不会有任何内容，因此，您看到的有关无法在该端口上连接的任何消息是正常的。
+
+如果配置成功的话，就会去读取你指定的日志文件，
+
+启动脚本：
+vim startFilebeat.sh
+加入如下
+#!/bin/bash
+./filebeat -e -c filebeat.yml -d "publish"
+添加执行权限
+chmod +x startFilebeat
+
+（6）修改Logstash的配置文件
+
+由于使用Filebeat作为输入，则需要修改相应的输入插件，修改前几步创建的logstash.conf文件，修改后的配置文件如下：
+
+input {
+	beats {
+		port => "5044"
+	}
+}
+output {
+	stdout {
+		codec => rubydebug
+	}
+}
+
+这里将beats（就是Filebeat）插件作为输入插件，端口号为5044，通过标准输出插件stdout?将数据显示在控制台中，其中stdout{} 里的codec => rubydebug?其中，rubydebug就是一种Codec，一般也只用在stdout插件中，作为配置测试或者调试的工具。
+
+
+要验证您的配置，请运行以下命令：
+
+./bin/logstash -f logstash.conf --config.test_and_exit
+
+--config.test_and_exit 选项将解析配置文件并报告任何出现错误的错误。
+
+如果配置文件通过配置测试，请使用以下命令启动Logstash：
+
+./bin/logstash -f logstash.conf --config.reload.automatic
+
+--config.reload.automatic?选项启用自动配置重新加载，这样的话你就不必在每次修改配置文件时停止和重新启动Logstash。
+
+如果配置成功的话，如果你的Tomcat服务器有日志更新，在Logstash和Filebeat都会显示出来：
+
+
+这个时候Filebeat也不会在报错，因为已经在5044端口和Logstash建立了连接

@@ -1,0 +1,344 @@
+Web服务器上面的Linux一般是不会有图形界面的，所有通过图形界面来安装Linux的方式在没有图形界面的Linux上面是行不通的，我们要使用的安装方式叫做Linux的静默安装。即在没有图形界面的Linux上面安装。
+
+1. 下载地址
+http://www.oracle.com/technetwork/database/enterprise-edition/downloads/index.html
+下载.tar.gz文件即可，oracle在Window上面是有分位数的，但在linux上面没有分，只需要下载 x-86-64 版本的即可。
+　　以·tar.gz为扩展名的是一种压缩文件，在Linux和OSX下常见，Linux和OSX都可以直接解压使用这种压缩文件。
+注意:root用户不能用是使用安装，root用户无法用来安装，需要用root用户创建一个新的用户要安装oracle。
+
+2.硬件检测：
+物理内存不少于1G
+硬盘可以空间不少于5G
+swap分区空间不少于2G
+支持256色以上显卡
+cpu主频不小于550mHZ
+cat /etc/issue
+uname -r (版本)
+grep MemTotal /proc/meminfo （内存大小）
+grep SwapTotal /proc/meminfo （交换区大小）
+grep "model name" /proc/cpuinfo （CPU信息）
+free （可用内存）
+
+3.检查安装依赖系统包
+　　操作系统依赖的具体包，请参考官方安装文档。
+binutils-2.17.50.0.6
+compat-libstdc++-33-3.2.3
+compat-libstdc++-33-3.2.3 (32 bit)
+elfutils-libelf-0.125
+elfutils-libelf-devel-0.125
+gcc-4.1.2
+gcc-c++-4.1.2
+glibc-2.5-24
+glibc-2.5-24 (32 bit)
+glibc-common-2.5
+glibc-devel-2.5
+glibc-devel-2.5 (32 bit)
+glibc-headers-2.5
+ksh-20060214
+libaio-0.3.106
+libaio-0.3.106 (32 bit)
+libaio-devel-0.3.106
+libaio-devel-0.3.106 (32 bit)
+libgcc-4.1.2
+libgcc-4.1.2 (32 bit)
+libstdc++-4.1.2
+libstdc++-4.1.2 (32 bit)
+libstdc++-devel 4.1.2
+make-3.81
+sysstat-7.0.2
+unixODBC-2.2.11 (32-bit) or later
+unixODBC-devel-2.2.11 (64-bit) or later
+unixODBC-2.2.11 (64-bit) or later
+检查依赖包
+```
+rpm -q binutils compat-libstdc++-33 elfutils-libelf elfutils-libelf-devel gcc gcc-c++ glibc-2.5 glibc-common glibc-devel glibc-headers ksh libaio libaio-devel libgcc libstdc++ libstdc++-devel make sysstat unixODBC unixODBC-devel
+```
+如果包有显示is not installed(没安装)，就用yum install 命令安装，如：
+
+```
+yum install compat-libstdc++-33
+```
+4.创建所需的操作系统组和用户
+```
+    groupadd oinstall
+    groupadd dba
+    useradd -g oinstall -G dba oracle
+```
+设置oracle用户密码
+```
+passwd oracle
+```
+5.修改内核参数
+在/sbin/sysctl.conf 文件中，使用文本编辑器或vi命令增加或修改以下参数 （vi /sbin/sysctl.conf）
+```
+fs.aio-max-nr = 1048576
+fs.file-max = 6815744
+kernel.shmall = 2097152
+kernel.shmmax = 536870912
+kernel.shmmni = 4096
+kernel.sem = 250 32000 100 128
+net.ipv4.ip_local_port_range = 9000 65500
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmem_max = 1048576
+```
+修改后，使设置生效
+
+```
+/sbin/sysctl -p
+```
+6.修改用户限制
+
+在/etc/security/limits.conf 文件中，使用文本编辑器或vi命令
+
+```
+vi /etc/security/limits.conf
+```
+增加以下参数
+```
+oracle soft nproc 2047
+oracle hard nproc 16384
+oracle soft nofile 1024
+oracle hard nofile 65536
+oracle soft stack 10240
+```
+在/etc/pam.d/login 文件中，使用文本编辑器或vi命令增加或修改以下内容
+```
+session required /lib/security/pam_limits.so
+session required pam_limits.so
+```
+在/etc/profile 文件中，使用文本编辑器或vi命令增加或修改以下内容
+
+```
+if [ $USER = "oracle" ]; then
+if [ $SHELL = "/bin/ksh" ]; then
+ulimit -p 16384
+ulimit -n 65536
+else
+ulimit -u 16384 -n 65536
+fi
+fi
+```
+使设置生效
+source /etc/profile
+
+7.创建安装目录(可根据情况，选择比较多空间的目录创建)
+```
+mkdir -p /usr/oracle
+chown -R oracle:oinstall /usr/oracle
+chmod -R 775 /usr/oracle
+```
+8.创建/etc/oraInst.loc文件,内容如下
+```
+inventory_loc=/usr/oracle/oraInventory
+inst_group=oinstall
+```
+更改文件的权限
+```
+chown oracle:oinstall /etc/oraInst.loc
+chmod 664 /etc/oraInst.loc
+```
+9.设置oracle环境变量
+```
+su - oracle    //切换用户到oracle
+vi ~/.bash_profile  //访问或者创建 home/oracle目录下面的.bash_profile文件
+```
+在最后加上以下内容
+```
+export ORACLE_BASE=/usr/oracle
+export ORACLE_SID=orcl
+```
+注意，除了ORACLE_BASE和ORACLE_SID,( /etc/profile和.bash_profile中)不设置任何oracle相关环境变量(ORACLE_HOME, PATH, LD_LIBRARY_PATH等)。其他环境变量将在安装完成后再配置
+
+使设置生效
+source /home/oracle/.bash_profile
+检查环境变量：
+env
+10.解压oracle安装文件
+```
+unzip linux.x64_11gR2_database_1of2.zip
+unzip linux.x64_11gR2_database_2of2.zip
+```
+11.复制响应文件模板
+```
+mkdir etc
+cp /home/oracle/database/response/* /home/oracle/etc/
+```
+设置响应文件权限
+```
+su - root
+chmod 700 /home/oracle/etc/*.rsp（注意所有者，oinstall）
+```
+12.静默安装Oracle软件
+切换用户
+su - oracle
+修改安装Oracle软件的响应文件/home/oracle/etc/db_install.rsp
+vi /home/oracle/etc/db_install.rsp
+添加一下内容
+```
+# 安装类型
+oracle.install.option=INSTALL_DB_SWONLY 
+# 主机名称（通过hostname查询的）
+ORACLE_HOSTNAME=db 
+#安装组
+UNIX_GROUP_NAME=oinstall
+#INVENTORY目录（不填就是默认值）
+INVENTORY_LOCATION=/usr/oracle/oraInventory 
+# 选择语言
+SELECTED_LANGUAGES=en,zh_CN,zh_TW 
+#oracle_home
+ORACLE_HOME=/usr/oracle/product/11.2.0/db_1 
+#oracle_base
+ORACLE_BASE=/usr/oracle 
+#oracle版本
+oracle.install.db.InstallEdition=EE 
+#自定义安装，否，使用默认组件
+oracle.install.db.isCustomInstall=false 
+#dba用户组
+oracle.install.db.DBA_GROUP=dba 
+#oper用户组
+oracle.install.db.OPER_GROUP=oinstall 
+#数据库类型
+oracle.install.db.config.starterdb.type=GENERAL_PURPOSE
+#globalDBName 
+oracle.install.db.config.starterdb.globalDBName=orcl
+#SID
+oracle.install.db.config.starterdb.SID=orcl
+#自动管理内存的内存(M)
+oracle.install.db.config.starterdb.memoryLimit=81920 
+#设定所有数据库用户使用同一个密码
+oracle.install.db.config.starterdb.password.ALL=oracle
+#（手动写了false）
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=false
+#设置安全更新（貌似是有bug，这个一定要选true，否则会无限提醒邮件地址有问题，终止安装。PS：不管地址对不对）
+DECLINE_SECURITY_UPDATES=true 
+```
+其他的变量不配置或者默认即可。
+
+开始静默安装
+cd database
+./runInstaller -silent -responseFile /home/oracle/etc/db_install.rsp
+安装中，如果提示[WARNING]不必理会，此时安装程序仍在进行，如果出现[FATAL]，则安装程序已经停止了。
+查看安装日志信息了解安装进度
+cd $ORACLE_BASE/oraInventory/logs
+tail -f installActions*.log
+出现类似如下提示表示安装完成：
+#-------------------------------------------------------------------
+
+/usr/oracle/oraInventory/orainstRoot.sh
+
+/usr/oracle/product/11.2.0/db_1/root.sh
+
+To execute the configuration scripts:
+
+1. Open a terminal window
+
+2. Log in as "root"
+
+3. Run the scripts
+
+4. Return to this window and hit "Enter" key to continue
+
+Successfully Setup Software.
+
+#-------------------------------------------------------------------
+使用root用户执行脚本
+这里是有两个脚本要执行，跑一下就好
+su - root  
+/usr/oracle/product/11.2.0/db_1/root.sh
+/usr/oracle/oraInventory/orainstRoot.sh
+增加oracle环境变量
+su - oracle
+vi ~/.bash_profile
+在最后加上以下内容
+```
+export ORACLE_HOME=$ORACLE_BASE/product/11.2.0/db_1
+export TNS_ADMIN=$ORACLE_HOME/network/admin
+export PATH=.:${PATH}:$HOME/bin:$ORACLE_HOME/bin
+export PATH=${PATH}:/usr/bin:/bin:/usr/bin/X11:/usr/local/bin
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$ORACLE_HOME/lib
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$ORACLE_HOME/oracm/lib
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/lib:/usr/lib:/usr/local/lib
+export CLASSPATH=${CLASSPATH}:$ORACLE_HOME/JRE
+export CLASSPATH=${CLASSPATH}:$ORACLE_HOME/JRE/lib
+export CLASSPATH=${CLASSPATH}:$ORACLE_HOME/jlib
+export CLASSPATH=${CLASSPATH}:$ORACLE_HOME/rdbms/jlib
+export CLASSPATH=${CLASSPATH}:$ORACLE_HOME/network/jlib
+export LIBPATH=${CLASSPATH}:$ORACLE_HOME/lib:$ORACLE_HOME/ctx/lib
+export ORACLE_OWNER=oracle
+export SPFILE_PATH=$ORACLE_HOME/dbs
+export ORA_NLS10=$ORACLE_HOME/nls/data
+```
+使设置生效
+source /home/oracle/.bash_profile
+到这里，oracle11g的数据库实例就算是装好了。
+可以使用sqlplus登录数据库查看数据库是否安装成功！
+```
+sqlplus 用户名/密码  （可选：连接IP） as sysdba
+```
+13.静默配置网络
+$ORACLE_HOME/bin/netca /silent /responseFile /home/oracle/etc/netca.rsp
+14.静默安装数据库
+修改仅安装数据库的响应文件/home/oracle/etc/dbca.rsp
+
+GDBNAME="orcl.java-linux-test" //78 行 全局数据库的名字=SID+主机域名 orcl
+SID="orcl" //149行 SID
+CHARACTERSET="AL32UTF8" //415行 编码
+NATIONALCHARACTERSET="UTF8" //425行 编码
+SYSPASSWORD = "123456"
+SYSTEMPASSWORD = "123456"
+
+进行静默安装数据库
+$ORACLE_HOME/bin/dbca -silent -responseFile /home/oracle/dbca.rsp
+
+建库后实例检查
+ 
+ps -ef | grep ora_ | grep -v grep | wc -l
+ps -ef | grep ora_ | grep -v grep
+建库后监听检查
+ 
+lsnrctl status
+如果出现以下错误
+ 
+lsnrctl: error while loading shared libraries: /u01/app/oracle/product/11.2.0/db_1/lib/libclntsh.so.11.1: cannot restore segment prot after reloc: Permission denied
+ 
+解决办法：在root用户下执行以下命令
+ 
+su - root
+setenforce 0
+15.修改oracle启动配置文件
+ 
+su - oracle
+vi /etc/oratab
+ 
+racl:/u01/app/oracle/product/11.2.0/db_1:Y //把“N”改成“Y”
+ 
+这样就可以通过dbstart 启动此实例，监听器。
+ 
+dbstart $ORACLE_HOME
+此时所有oracle的进程关闭，监听器也停止。
+ 
+dbshut $ORACLE_HOME
+再次查看监听器状态。
+ 
+lsnrctl status
+ 
+如果使用归档日志
+ 
+sqlplus / as sysdba
+ 
+SQL> shutdown immediate;
+SQL> startup mount;
+SQL> alter database archivelog;
+SQL> alter database flashback on; (如果要启用数据库闪回功能则执行)
+SQL> alter database open;
+SQL> execute utl_recomp.recomp_serial(); (重新编译所有可能失效对象)
+SQL> alter system archive log current; (手工归档测试)
+ 
+默认安装的数据库用户检查
+ 
+SQL> set lines 256 pages 500
+SQL> select USER_ID,USERNAME,ACCOUNT_STATUS,DEFAULT_TABLESPACE from dba_users order by
+
+

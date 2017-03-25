@@ -1,0 +1,149 @@
+Linux操作系统安装ELK stack日志管理系统--（2）Elasticsearch与Kibana的安装与使用
+
+前言
+
+Elasticsearch是一个高度可扩展的开源全文搜索和分析引擎。它允许您快速和近实时地存储，搜索和分析大量数据。
+
+Kibana作为日志的过滤web展示，图形界面话操作日志记录。别名Elasticsearch Dashboard 顾名思义是基于游览器的Elasticsearch分析和仪表盘工具。
+
+Elasticsearch的安装
+
+一、Elasticsearch下载和解压
+
+下载地址：https://www.elastic.co/downloads/elasticsearch
+
+
+
+选择tar的，注意右键复制下载链接地址，这里是：https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.2.1.tar.gz
+
+使用wget命令下载到服务器指定目录：
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.2.1.tar.gz
+
+
+使用tar -xvf elasticsearch-5.2.1.tar 命令解压，使用cd命令进入文件夹目录：
+
+
+
+二、启动Elasticsearch
+
+进入bin目录，使用./elasticsearch 命令启动elasticsearch：
+
+
+
+，如果没有出现报错信息的话！这个时候，已经成功启动了！
+
+二、将Logstash和Elasticsearch进行关联
+
+Data Source------>Logstash Pipeline(input,filters,outputs)------>Elasticsearch
+
+
+根据上图可以看到需要将Logstash和Elasticsearch进行关联，这样的话才可以将数据输入到Elasticsearch进行处理。
+
+（1）配置Logstash将stdout标准输出设置为Elasticsearch
+
+修改上一篇文章中自己定义的配置文件 logstash.conf，修改为如下内容：
+
+input {
+	beats {
+		port => "5044"
+	}
+}
+filter {
+	grok {
+		match => {"message"=>"%{COMBINEDAPACHELOG}"}
+	}
+	geoip {
+		source => "clientip"
+	}
+}
+output {
+	elasticsearch {
+		hosts => ["localhost:9200"]
+	}
+}
+
+
+其中，新增了两个filter插件，这个后期再进行学习，然后output输出为elasticsearch，退出保存！
+
+（2）启动Filebeat
+
+./filebeat -e -c filebeat.yml -d "publish"
+
+（3）启动Logstash
+
+bin/logstash -f logstash.conf
+
+（4）查看Elasticsearch的反应
+
+
+
+到此Elasticsearch安装完成，也和Logstash进行了关联，下边安装Kibana进行可视化的操作。
+
+Kibana的安装与使用
+
+Kibana是一个开源的分析和可视化平台，旨在与Elasticsearch一起工作。您使用Kibana搜索，查看和与存储在Elasticsearch索引中的数据进行交互。您可以轻松地在各种图表，表格和地图中执行高级数据分析和可视化数据。
+
+一、Kibana下载与解压
+
+下载地址：https://www.elastic.co/downloads/kibana
+
+
+
+同样选择linux 64-bit右键复制下载链接！
+
+使用wget命令进行下载：
+
+wget https://artifacts.elastic.co/downloads/kibana/kibana-5.2.1-linux-x86_64.tar.gz
+
+使用tar -xvf kibana-5.2.1-Linux-x86_64.tar.gz命令进行解压，进入目录：
+
+
+
+二、配置Kibana
+
+Kibana的配置文件是在config/kibana.yml
+
+（1）修改主机绑定的IP地址：
+
+server.host: "0.0.0.0"
+
+
+将IP地址修改为 0.0.0.0 表示全匹配！
+
+（2）指定要进行连接到Elasticsearch
+
+#elasticsearch.url: "http://localhost:9200"
+
+这里，由于全部是在一台机子上进行的实验，因此默认就可以，也就是：
+
+elasticsearch.url: "http://localhost:9200"
+
+三、启动Kibana
+
+在bin目录下使用命令：./kibana 启动：
+如报：
+kibana Unable to connect to elasticsearch at http://localhost:9200
+
+解决方法：
+修改kibana.yml配置，添加elasticsearch.ssl.verify: false
+
+可以看到kibana正在5601端口监听，使用游览器访问！
+
+四、访问Kibana
+
+首先确保你是用的Liunx服务器开启了5601端口！
+
+因为我的机子访问地址为：http://192.168.1.220:5601，
+
+
+看到界面，然后配置index，点击create！
+
+只要你的 Tomcat产生了日志，就可以在Discover中看到，如果进入之后看不到任何结果，可能是你的Tomcat未产生日志：
+
+
+
+至此！Elasticsearch与Kibana的安装已经完成！贯穿了从Filebeat达到logstash，再到Elasticsearch和Kibana的整个过程！
+
+总结
+
+当然，这只是跑通了最简单的配置操作。对于ELK的知识还有很多需要学习，后期也会把一些学习中遇到的问题和经验写出来和大家一起分享！

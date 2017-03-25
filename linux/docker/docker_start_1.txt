@@ -1,0 +1,95 @@
+1 安装docker 
+yum -y install docker-io
+docker --version ：查看版本确认安装成功
+service docker start 服务启动
+将docker加入开机启动
+[root@localhost /]# chkconfig docker on
+2 创建docker用户与docker用户组（这样docker用户可不用每条命令加sudo）
+groupadd docker 	#创建用户组
+useradd dicker -g docker #创建用户并指定用户组
+passwd docker #设置用户密码
+3 下载镜像
+我这用的是https://c.163.com/hub#/m/library/ 网易的
+docker pull hub.c.163.com/public/centos:6.5
+一些其他命令
+docker images 查看镜像
+docker ps 	查看运行中的镜像
+docker ps -a 查看所有镜像
+docker commit 39b2cf60a4c1 alan/docdemo
+docker save -o 文件名 镜像名或ID	#保存镜像为文件
+dicker load --input 文件名			#加载镜像文件
+镜像下载到本地以后，就可以使用Docker运行，
+通过下面的命令参数启动容器，
+docker run <相关参数> <镜像 ID> <初始命令>
+-i：表示以“交互模式”运行容器
+-t：表示容器启动后会进入其命令行
+-v：表示需要将本地哪个目录挂载到容器中，
+格式：-v <宿主机目录>:<容器目录>
+我的相关程序都在当前机器的/data/software/目录下，并且想把它挂载到容器的相同目录下：
+sudo docker run -i -t -v /data/software/:/data/software/ ae983d5e88ce /bin/bash
+“镜像 ID”，也可以使用“仓库名:标签名”，例如：index.alauda.cn/alauda/ubuntu :latest。
+上面的命令，可以使用指定的镜像运行一个shell，如果想退出该终端，可以使用exit命令，
+或者依次按下CTRL -p+CTRL -q，即可切换到宿主机器。不过这种方式，容器依然在后台运行。
+
+使用Docker attach命名进入docker容器后：
+【场景一】如果要正常退出不关闭容器，请按Ctrl+P+Q进行退出容器。
+【场景二】如果使用exit退出，那么在退出容器后会关闭容器，
+
+如何在docker和宿主机之间复制文件
+	网上提供的方法差不多有三种
+		1.用-v挂载主机数据卷到容器内 
+		2.直接在主机上拷贝到容器物理存储系统 
+		3.用输入输出符
+		具体方法这篇文章写的很详细：http://blog.csdn.net/yangzhenping/article/details/43667785
+		但是对这三种方法我都不太喜欢，无意间看到另位一种方法供大家参考：
+		从主机复制到容器sudo docker cp host_path containerID:container_path
+		从容器复制到主机sudo docker cp containerID:container_path host_path
+		容器ID的查询方法想必大家都清楚:docker ps -a
+
+		
+		Docker中开启sshd服务
+7条评论
+docker官方上有具体的ubuntu下开启sshd服务方法，这里介绍下我的笨办法和开启中遇到的一些问题
+
+准备基础镜像
+出于学习目的，我使用的镜像都是自己打包的，感兴趣的可以看看我上一篇介绍centos下学习docker，其中有具体的镜像制作方法。
+创建容器
+#docker run -i -t centos6.5:version-1 /bin/bash
+我使用的镜像是centos6.5，其中version-1是tag，使用-i参数进入交互模式，并且运行/bin/bash
+ssh服务安装
+安装ssh服务
+#yum install openssh-server -y
+安装passwd（修改密码需要）
+#yum install passwd -y
+修改sshd_config配置文件
+UsePAM yes改成UsePAM no
+关闭主机selinux
+当使用passwd修改容器中root密码的时候，会报错：
+passwd: system_u:system_r:initrc_t:s0 is not authorized to change the password of root
+这时候，需要关闭主机selinux：
+getenforce 这个命令可以查看到selinux的状态，
+还有一个命令也可以查看出selinux的状态。
+sestatus -v
+1 etenforce 命令设置临时关闭，不用重启生效。
+setenforce 0
+2 还可以通过编辑文件，然后重启让它关闭生效。
+vi /etc/sysconfig/selinux
+把里边的一行改为
+SELINUX=disabled
+改了之后保存，然后重启就可以了。
+
+开机自启
+在/root目录下创建run.sh脚本，添加如下内容：
+ #!/bin/bash
+ service sshd restart
+ /bin/bash
+其实开机自起可以用CMD的，但是暂时不会。。。就统一用脚本执行的方式防止退出，感觉可调控行蛮好的。
+保存修改
+查看正在运行的容器ID
+#docker ps
+commit修改的容器ID，保存为centos6.5，tag为sshd
+#docker commit ID centos6.5：sshd
+开启服务
+#docker run -d -p 22:22 -i -t centos6.5:sshd /root/run.sh
+以后台模式运行容器，且把容器的22端口映射到主机的22端口
+这样，就可以从外网通过ssh连接到容器了。

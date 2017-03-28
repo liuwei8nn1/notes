@@ -253,6 +253,8 @@ su - oracle
 vi ~/.bash_profile
 在最后加上以下内容
 ```
+export ORACLE_BASE=/usr/oracle
+export ORACLE_SID=orcl
 export ORACLE_HOME=$ORACLE_BASE/product/11.2.0/db_1
 export TNS_ADMIN=$ORACLE_HOME/network/admin
 export PATH=.:${PATH}:$HOME/bin:$ORACLE_HOME/bin

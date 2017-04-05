@@ -31,10 +31,11 @@ sudo docker run -i -t -v /data/software/:/data/software/ ae983d5e88ce /bin/bash
 上面的命令，可以使用指定的镜像运行一个shell，如果想退出该终端，可以使用exit命令，
 或者依次按下CTRL -p+CTRL -q，即可切换到宿主机器。不过这种方式，容器依然在后台运行。
 
-使用Docker attach命名进入docker容器后：
+1 使用Docker attach命名进入docker容器后：
 【场景一】如果要正常退出不关闭容器，请按Ctrl+P+Q进行退出容器。
 【场景二】如果使用exit退出，那么在退出容器后会关闭容器，
-
+2 使用docker exec进入Docker容器,
+3 使用SSH进入Docker容器
 如何在docker和宿主机之间复制文件
 	网上提供的方法差不多有三种
 		1.用-v挂载主机数据卷到容器内 
@@ -45,14 +46,7 @@ sudo docker run -i -t -v /data/software/:/data/software/ ae983d5e88ce /bin/bash
 		从主机复制到容器sudo docker cp host_path containerID:container_path
 		从容器复制到主机sudo docker cp containerID:container_path host_path
 		容器ID的查询方法想必大家都清楚:docker ps -a
-
-		
 		Docker中开启sshd服务
-7条评论
-docker官方上有具体的ubuntu下开启sshd服务方法，这里介绍下我的笨办法和开启中遇到的一些问题
-
-准备基础镜像
-出于学习目的，我使用的镜像都是自己打包的，感兴趣的可以看看我上一篇介绍centos下学习docker，其中有具体的镜像制作方法。
 创建容器
 #docker run -i -t centos6.5:version-1 /bin/bash
 我使用的镜像是centos6.5，其中version-1是tag，使用-i参数进入交互模式，并且运行/bin/bash

@@ -1,0 +1,372 @@
+运行平台：CentOS 6.8 x86_64
+
+安装方法：
+
+安装MySQL主要有两种方法：一种是通过源码自行编译安装，这种适合高级用户定制MySQL的特性，这里不做说明；另一种是通过编译过的二进制文件进行安装。二进制文件安装的方法又分为两种：一种是不针对特定平台的通用安装方法，使用的二进制文件是后缀为.tar.gz的压缩文件；第二种是使用RPM或其他包进行安装，这种安装进程会自动完成系统的相关配置，所以比较方便
+
+一：通过编译过的MySQL二进制文件进行安装。是不针对特定平台的通用安装方法，使用的二进制文件是后缀为.tar.gz的压缩文件 
+1、下载 http://dev.mysql.com/downloads/mysql 
+
+2 解压缩到/usr/local/下面 
+cd /usr/local/src 
+tar -zxvf mysql-5.7.17-Linux-glibc2.5-x86_64.tar.gz -C /usr/local
+
+/usr/local/生成了解压后的文件夹mysql-5.5.29-linux2.6-x86_64，这名字太长，我们为它建立一个符号链接mysql，方便输入。 
+[root@localhost local]#ln -s mysql-5.7.17-linux-glibc2.5-x86_64 mysql
+
+创建mysql的用户组和用户，并对mysql目录设置用户组和用户 
+[root@localhost local]# groupadd mysql 
+[root@localhost local]# useradd mysql -g mysql 
+[root@localhost local]# cd mysql 
+[root@localhost mysql]# pwd 
+/usr/local/mysql 
+[root@localhost mysql]# chown -R mysql . 
+[root@localhost mysql]# chgrp -R mysql .
+
+初始化mysql并启动mysql服务
+
+执行mysql_install_db脚本，对mysql中的data目录进行初始化并创建一些系统表格。注意mysql服务进程mysqld运行时会访问data目录，所以必须由启动mysqld进程的用户（就是我们之前设置的mysql用户）执行这个脚本，或者用root执行，但是加上参数–user=mysql。 
+[root@alan mysql]./bin/mysql_install_db –user=mysql –basedir=/usr/local/mysql/ –datadir=/usr/local/mysql/data
+
+报错： 
+2016-07-15 14:50:14 [WARNING] mysql_install_db is deprecated. Please consider switching to mysqld –initialize 
+2016-07-15 14:50:14 [ERROR] The data directory needs to be specified. 
+需要指定data目录，注意mysql服务进程mysqld运行时会访问data目录，所以必须由启动mysqld进程的用户（就是我们之前设置的mysql用户）执行这个脚本， 或者用root 执行，但是加上参数–user=mysql。 
+上文还有警告信息，说mysql_install_db 命令已经是弃用的，建议切换到mysqld –initialize命令 
+注： 
+mysql5.7和之前版本不同，很多资料上都是这个命令：../scripts/mysql_install_db –user=mysql，而mysql5.7的mysql_install_db命令是在bin目录下 的并且建议 用 mysqld –initialize命令 
+./bin/mysqld –initialize –basedir=/usr/local/mysql –datadir=/usr/local/src/mysql/data/ 
+mysql5.7之前版本初始化配置表命令： 
+script/mysql_install_db –user=mysql –basedir=/Ultrapower/test/mysql –datadir=/Ultrapower/test/mysql/data/ 
+–user 启动mysql的用户 
+–basedir mysql安装目录 
+–datadir mysql数据仓库目录
+
+[root@alan mysql]# mkdir data
+[root@alan mysql]# bin/mysqld --initialize --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data
+2016-07-15T09:39:38.166396Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2016-07-15T09:39:38.166941Z 0 [Warning] 'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+2016-07-15T09:39:38.166976Z 0 [Warning] 'NO_AUTO_CREATE_USER' sql mode was not set.
+2016-07-15T09:39:39.486697Z 0 [Warning] InnoDB: New log files created, LSN=45790
+2016-07-15T09:39:39.699652Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+2016-07-15T09:39:39.767191Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: 0d154f38-4a70-11e6-8670-005056913e3a.
+2016-07-15T09:39:39.771851Z 0 [Warning] Gtid table is not ready to be used. Table 'mysql.gtid_executed' cannot be opened.
+2016-07-15T09:39:39.773073Z 1 [Note] A temporary password is generated for root@localhost: i7YCy.:jv6yr
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+注意最后一行，这也是和之有版本不同的地方，它给了root一个初始密码，后面要登录的时候要用到这个密码。
+
+*将mysql/目录下除了data/目录的所有文件，改回root用户所有，mysql用户只需作为mysql/data/目录下所有文件的所有者。 
+[root@localhost mysql]chown -R root . 
+[root@localhost mysql]chown -R mysql data 
+复制配置文件
+
+[root@alan mysql]# cp support-files/my-default.cnf /etc/mysql.cnf
+
+将mysqld服务加入开机自启动项。
+
+*首先需要将support-files/mysql.server服务脚本复制到/etc/init.d/，并重命名为mysqld。
+
+[root@alan mysql] cp support-files/mysql.server /etc/init.d/mysqld
+
+*通过chkconfig命令将mysqld服务加入到自启动服务项中。
+
+[root@alan mysql]#chkconfig –add mysqld
+
+*注意服务名称mysqld就是我们将mysql.server复制到/etc/init.d/时重命名的名称。
+
+*查看是否添加成功
+
+[root@localhost mysql]#chkconfig –list mysqld
+
+mysqld 0:off 1:off 2:on 3:on 4:on 5:on 6:off
+
+重启系统，mysqld就会自动启动了。
+
+*检查是否启动
+
+[root@localhost mysql]#netstat -anp|grep mysqld
+
+tcp 0 0 0.0.0.0:3306 0.0.0.0:* LISTEN 2365/mysqld
+
+unix 2 [ ACC ] STREAM LISTENING 14396 2365/mysqld /tmp/mysql.sock
+
+*如果不想重新启动，那可以直接手动启动。
+
+[root@localhost mysql]#service mysqld start
+
+Starting MySQL.. SUCCESS!
+
+运行客户端程序mysql，在mysql/bin目录中，测试能否连接到mysqld。
+
+[root@localhost mysql]#/usr/local/mysql/bin/mysql
+
+Welcome to the MySQLmonitor. Commands end with ; or \g.
+
+Your MySQL connection idis 2
+
+Server version:5.5.29-log MySQL Community Server (GPL)
+
+Copyright (c) 2000, 2012,Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registeredtrademark of Oracle Corporation and/or its affiliates. Other names may betrademarks of their respective owners.
+
+Type ‘help;’ or ‘\h’ forhelp. Type ‘\c’ to clear the current input statement.
+
+mysql> quit
+
+Bye
+
+*此时会出现mysql>命令提示符，可以输入sql语句，输入quit或exit退出。为了避免每次都输入mysql的全路径/usr/local/mysql/bin/mysql，可将其加入环境变量中，在/etc/profile最后加入两行命令：
+
+MYSQL_HOME=/usr/local/mysql 
+export PATH=PATH:MYSQL_HOME/bin
+
+这样就可以在shell中直接输入mysql命令来启动客户端程序了 
+[root@localhost mysql]#mysql 
+Welcome to the MySQLmonitor. Commands end with ; or \g. 
+Your MySQL connection idis 3 
+Server version:5.5.29-log MySQL Community Server (GPL) 
+Copyright (c) 2000, 2012,Oracle and/or its affiliates. All rights reserved. 
+Oracle is a registeredtrademark of Oracle Corporation and/or its 
+affiliates. Other namesmay be trademarks of their respective 
+owners. 
+Type ‘help;’ or ‘\h’ forhelp. Type ‘\c’ to clear the current input statement. 
+mysql>
+
+http://blog.csdn.net/bao19901210/article/details/51917641
+
+二：通过yum来进行mysql的安装
+
+我是通过yum的方式来进行mysql的数据库安装，首先我们可以输入 yum list | grep mysql 命令来查看yum上提供的mysql数据库可下载的版本：
+
+[root@xiaoluo ~]# yum list | grep mysql 
+就可以得到yum服务器上mysql数据库的可下载版本信息：
+
+然后我们可以通过输入 yum install -y mysql-server mysql mysql-devel 命令将mysql mysql-server mysql-devel都安装好(注意:安装mysql时我们并不是安装了mysql客户端就相当于安装好了mysql数据库了，我们还需要安装mysql-server服务端才行)
+
+[root@xiaoluo ~]# yum install -y mysql-server mysql mysql-deve
+
+在等待了一番时间后，yum会帮我们选择好安装mysql数据库所需要的软件以及其它附属的一些软件
+
+我们发现，通过yum方式安装mysql数据库省去了很多没必要的麻烦，当出现下面的结果时，就代表mysql数据库安装成功了
+
+此时我们可以通过如下命令，查看刚安装好的mysql-server的版本
+
+[root@xiaoluo ~]# rpm -qi mysql-server
+
+我们安装的mysql-server并不是最新版本，如果你想尝试最新版本，那就去mysql官网下载rpm包安装就行了，至此我们的mysql数据库已经安装完成了。
+
+2、mysql数据库的初始化及相关配置
+
+我们在安装完mysql数据库以后，会发现会多出一个mysqld的服务，这个就是咱们的数据库服务，我们通过输入 service mysqld start 命令就可以启动我们的mysql服务。
+
+注意：如果我们是第一次启动mysql服务，mysql服务器首先会进行初始化的配置，如：
+
+[root@xiaoluo ~]# service mysqld start
+
+初始化 MySQL 数据库： WARNING: The host ‘xiaoluo’ could not be looked up with resolveip. 
+This probably means that your libc libraries are not 100 % compatible 
+with this binary MySQL version. The MySQL daemon, mysqld, should work 
+normally with the exception that host name resolving will not work. 
+This means that you should use IP addresses instead of hostnames 
+when specifying MySQL privileges ! 
+Installing MySQL system tables… 
+OK 
+Filling help tables… 
+OK 
+To start mysqld at boot time you have to copy 
+support-files/mysql.server to the right place for your system 
+PLEASE REMEMBER TO SET A PASSWORD FOR THE MySQL root USER ! 
+To do so, start the server, then issue the following commands: 
+/usr/bin/mysqladmin -u root password ‘new-password’ 
+/usr/bin/mysqladmin -u root -h xiaoluo password ‘new-password’ 
+Alternatively you can run: 
+/usr/bin/mysql_secure_installation 
+which will also give you the option of removing the test 
+databases and anonymous user created by default. This is 
+strongly recommended for production servers. 
+See the manual for more instructions. 
+You can start the MySQL daemon with: 
+cd /usr ; /usr/bin/mysqld_safe & 
+You can test the MySQL daemon with mysql-test-run.pl 
+cd /usr/mysql-test ; perl mysql-test-run.pl 
+Please report any problems with the /usr/bin/mysqlbug script!
+
+                                                       [确定]
+正在启动 mysqld： [确定]
+
+这时我们会看到第一次启动mysql服务器以后会提示非常多的信息，目的就是对mysql数据库进行初始化操作，当我们再次重新启动mysql服务时，就不会提示这么多信息了，如：
+
+[root@xiaoluo ~]# service mysqld restart 
+停止 mysqld： [确定] 
+正在启动 mysqld： [确定]
+
+我们在使用mysql数据库时，都得首先启动mysqld服务，我们可以 通过 chkconfig –list | grep mysqld 命令来查看mysql服务是不是开机自动启动，如：
+
+[root@xiaoluo ~]# chkconfig –list | grep mysqld 
+mysqld 0:关闭 1:关闭 2:关闭 3:关闭 4:关闭 5:关闭 6:关闭
+
+我们发现mysqld服务并没有开机自动启动，我们当然可以通过 chkconfig mysqld on 命令来将其设置成开机启动，这样就不用每次都去手动启动了
+
+[root@xiaoluo ~]# chkconfig mysqld on 
+[root@xiaoluo ~]# chkconfig –list | grep mysql 
+mysqld 0:关闭 1:关闭 2:启用 3:启用 4:启用 5:启用 6:关闭
+
+mysql数据库安装完以后只会有一个root管理员账号，但是此时的root账号还并没有为其设置密码，在第一次启动mysql服务时，会进行数据库的一些初始化工作，在输出的一大串信息中，我们看到有这样一行信息 ：
+
+/usr/bin/mysqladmin -u root password ‘new-password’　　// 为root账号设置密码
+
+所以我们可以通过 该命令来给我们的root账号设置密码(注意：这个root账号是mysql的root账号，非Linux的root账号)
+
+[root@xiaoluo ~]# mysqladmin -u root password ‘root’　　// 通过该命令给root账号设置密码为 root
+
+方法1： 用SET PASSWORD命令
+
+　　mysql -u root
+
+　　mysql> SET PASSWORD FOR ‘root’@’localhost’ = PASSWORD(‘newpass’);
+
+方法2：用mysqladmin
+
+　　mysqladmin -u root password “newpass”
+
+　　如果root已经设置过密码，采用如下方法
+
+　　mysqladmin -u root password oldpass “newpass”
+
+方法3： 用UPDATE直接编辑user表
+
+　　mysql -u root
+
+　　mysql> use mysql;
+
+　　mysql> UPDATE user SET Password = PASSWORD(‘newpass’) WHERE user = ‘root’;
+
+　　mysql> FLUSH PRIVILEGES;
+
+在丢失root密码的时候，可以这样
+
+　　mysqld_safe –skip-grant-tables&
+
+　　mysql -u root mysql
+
+　　mysql> UPDATE user SET password=PASSWORD(“new password”) WHERE user=’root’;
+
+　　mysql> FLUSH PRIVILEGES;
+
+此时我们就可以通过 mysql -u root -p 命令来登录我们的mysql数据库了
+
+五、mysql数据库的主要配置文件
+
+1./etc/my.cnf 这是mysql的主配置文件
+
+我们可以查看一下这个文件的一些信息
+
+[root@xiaoluo etc]# ls my.cnf 
+my.cnf 
+[root@xiaoluo etc]# cat my.cnf 
+[mysqld] 
+datadir=/var/lib/mysql 
+socket=/var/lib/mysql/mysql.sock 
+user=mysql
+
+Disabling symbolic-links is recommended to prevent assorted security risks
+
+symbolic-links=0
+
+[mysqld_safe] 
+log-error=/var/log/mysqld.log 
+pid-file=/var/run/mysqld/mysqld.pid
+
+2./var/lib/mysql mysql数据库的数据库文件存放位置
+
+我们的mysql数据库的数据库文件通常是存放在了/ver/lib/mysql这个目录下
+
+[root@xiaoluo ~]# cd /var/lib/mysql/ 
+[root@xiaoluo mysql]# ls -l 
+总用量 20488 
+-rw-rw—-. 1 mysql mysql 10485760 4月 6 22:01 ibdata1 
+-rw-rw—-. 1 mysql mysql 5242880 4月 6 22:01 ib_logfile0 
+-rw-rw—-. 1 mysql mysql 5242880 4月 6 21:59 ib_logfile1 
+drwx——. 2 mysql mysql 4096 4月 6 21:59 mysql　　// 这两个是mysql数据库安装时默认的两个数据库文件 
+srwxrwxrwx. 1 mysql mysql 0 4月 6 22:01 mysql.sock 
+drwx——. 2 mysql mysql 4096 4月 6 21:59 test　　// 这两个是mysql数据库安装时默认的两个数据库文件
+
+我们可以自己创建一个数据库，来验证一下该数据库文件的存放位置
+
+创建一个我们自己的数据库： 
+mysql> create database xiaoluo; 
+Query OK, 1 row affected (0.00 sec)
+
+[root@xiaoluo mysql]# ls -l 
+总用量 20492 
+-rw-rw—-. 1 mysql mysql 10485760 4月 6 22:01 ibdata1 
+-rw-rw—-. 1 mysql mysql 5242880 4月 6 22:01 ib_logfile0 
+-rw-rw—-. 1 mysql mysql 5242880 4月 6 21:59 ib_logfile1 
+drwx——. 2 mysql mysql 4096 4月 6 21:59 mysql 
+srwxrwxrwx. 1 mysql mysql 0 4月 6 22:01 mysql.sock 
+drwx——. 2 mysql mysql 4096 4月 6 21:59 test 
+drwx——. 2 mysql mysql 4096 4月 6 22:15 xiaoluo　　// 这个就是我们刚自己创建的xiaoluo数据库 
+[root@xiaoluo mysql]# cd xiaoluo/ 
+[root@xiaoluo xiaoluo]# ls 
+db.opt
+
+3./var/log mysql数据库的日志输出存放位置
+
+我们的mysql数据库的一些日志输出存放位置都是在/var/log这个目录下
+
+[root@xiaoluo xiaoluo]# cd 
+[root@xiaoluo ~]# cd /var/log 
+[root@xiaoluo log]# ls 
+amanda cron maillog-20130331 spice-vdagent.log 
+anaconda.ifcfg.log cron-20130331 mcelog spooler 
+anaconda.log cups messages spooler-20130331 
+anaconda.program.log dirsrv messages-20130331 sssd 
+anaconda.storage.log dmesg mysqld.log tallylog 
+anaconda.syslog dmesg.old ntpstats tomcat6 
+anaconda.xlog dracut.log piranha wpa_supplicant.log 
+anaconda.yum.log gdm pm-powersave.log wtmp 
+audit httpd ppp Xorg.0.log 
+boot.log ibacm.log prelink Xorg.0.log.old 
+btmp lastlog sa Xorg.1.log 
+btmp-20130401 libvirt samba Xorg.2.log 
+cluster luci secure Xorg.9.log 
+ConsoleKit maillog secure-20130331 yum.log
+
+其中mysqld.log 这个文件就是我们存放我们跟mysql数据库进行操作而产生的一些日志信息，通过查看该日志文件，我们可以从中获得很多信息
+
+因为我们的mysql数据库是可以通过网络访问的，并不是一个单机版数据库，其中使用的协议是 tcp/ip 协议，我们都知道mysql数据库绑定的端口号是 3306 ，所以我们可以通过 netstat -anp 命令来查看一下，Linux系统是否在监听 3306 这个端口号：
+
+结果如上所示，Linux系统监听的3306端口号就是我们的mysql数据库！！！！
+
+本篇随笔详细记录了在CentOS6.4下通过yum安装mysql数据库以及对数据库进行基本配置，在后续的Linux学习中将会坚持记录自己的心得以及体会！！！！ 
+可能错误信息： 
+Can’t connect to local MySQL server through socket ‘/tmp/mysql.sock’ (2) 
+通过下面可解决： 
+ln -s /var/lib/mysql/mysql.sock /tmp/mysql.sock 
+mysql报错：error while loading shared libraries: libaio.so.1: cannot open shared 
+安装 ： 
+apt-get install libaio1 libaio-dev 
+或 
+yum -y install libaio
+
+博文地址：http://blog.csdn.net/liuwei8nn1/article/details/60574452

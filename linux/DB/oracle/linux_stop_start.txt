@@ -1,0 +1,117 @@
+oracle的启动和关闭
+一、sql*plus方式：
+     用sql*plus来连接到Oracle
+   $ sqlplus / as sysdba 是以不连接数据库的方式启动sql*plus
+   sql->Connect /as sysdba 是以DBA身份连接到oracle
+   sql->startup 				启动数据库
+   启动监听：lsnrctl start 		用户远程登录
+	查看监听：lsnrctl status
+	停止监听：lsnrctl stop
+	
+其他：
+1、oracle 数据服务器包括：实例进程和数据库； 
+   实例进程包括：memory structure(sga)以及background process(pmon（进程监控）、smon（系统监控system monitor，空间整理3秒）、dbwr（脏数据处理）、lgwr（将redo buffer文件写会log），ckpt（checkpoint，同步数据，先写日志、脏数据）等进程)； 
+  数据库包括：数据文件、控制文件，redo log 文件，三者是必须的，至于 参数文件、密码文件、归档文件是可选的，根据数据库的状态而定； 
+2、pga:包括user process 和server process，user process通过server process来与oracle的实例进行进行通信。 
+3、sga=share pool+database buffer cache+redo log buffer + other structures(large pool,java pool可选)?
+shared_pool=library cache(sql共享，缓冲sql的执行计划，采用最近最少使用算法) + data dictionary cache(row cache，数据字典);?
+database buffer cache（db_cache_size）：oracle以block size最为基本的数据读写单位 
+redo log buffer cache:?
+4、改变参数： 
+alter system set shared_pool_size=64m;?
+alter system set db_cache_size=64m;?
+alter system set large_pool_size=64m;?
+5、os验证用户： 
+create user id 
+create group （ora_dba，ora_databasename_dba,ora_oper,ora_databasename_oper） 
+add user id to group id 
+edit sqlnet.ora (sqlnet.authentication_services=(nts))?
+6、忘记system/sys的密码： 
+删掉E:oracleproduct10.2.0db_1databasepwdtestdb.ora;?
+使用命令：orapwd file=d:pwdtestdb.ora password=admin1 entries=10;将密码设置为admin1； 
+或则： 
+sqlplus /@testdb as sysdba 
+alter user sys identified by 新密码;?
+alter user system identified by 新密码;?
+
+7、block（块） extend（盘区） segment（段） tablespace（表空间） 
+8、网络服务的配置信息在D:oracleproduct10.2.0db_1NETWORKADMIN	nsnames.ora文件中记录 
+数据库的启动命令 
+1、启动TNS监听 
+C:Documents and SettingsAdministrator>lsnrctl start 
+2、启动Oracle Services 
+C:Documents and SettingsAdministrator>net start OracleServiceOrcl 
+3、以sysdba身份登录 
+SQL> connect system as sysdba 
+4、启动isqlplus 
+C:Documents and SettingsAdministrator>isqlplusctl start 
+5、启动database control 
+C:Documents and SettingsAdministrator>emctl start dbconsole 
+如果启动错误，很可能是ip地址进行了修改，可采取如下措施： 
+set oracle_hostname=主机名 
+emca -config dbcontrol db，进行相应的配置。 
+6、http://localhost:1158/em/?
+
+<打开控制台输出>?
+1、show all 
+   serveroutput OFF 
+2、set serveroutput on 
+启动及关闭模式 
+Oracle数据库的几种启动和关闭方式 
+有以下几种启动方式： 
+1、startup nomount 
+   非安装启动，这种方式启动下可执行：重建控制文件、重建数据库 
+
+   读取init.ora文件，启动instance，即启动SGA和后台进程，这种启动只需要init.ora文件。 
+???
+2、startup mount dbname 
+   安装启动，这种方式启动下可执行： 
+   数据库日志归档、 
+   数据库介质恢复、 
+   使数据文件联机或脱机， 
+   重新定位数据文件、重做日志文件。 
+   执行“nomount”，然后打开控制文件，确认数据文件和联机日志文件的位置， 
+   但此时不对数据文件和日志文件进行校验检查。 
+
+3、startup open dbname 
+   先执行“nomount”，然后执行“mount”，再打开包括Redo log文件在内的所有数据库文件， 
+   这种方式下可访问数据库中的数据。 
+
+4、startup，等于以下三个命令 
+   startup nomount 
+   alter database mount 
+   alter database open 
+
+5、startup restrict 
+   约束方式启动 
+   这种方式能够启动数据库，但只允许具有一定特权的用户访问 
+   非特权用户访问时，会出现以下提示： 
+   ERROR： 
+   ORA-01035: ORACLE 只允许具有 RESTRICTED SESSION 权限的用户使用 
+
+6、startup force 
+   强制启动方式 
+   当不能关闭数据库时，可以用startup force来完成数据库的关闭 
+   先关闭数据库，再执行正常启动数据库命令 
+
+7、startup pfile=参数文件名 
+   带初始化参数文件的启动方式 
+   先读取参数文件，再按参数文件中的设置启动数据库 
+   例：startup pfile=E:Oracleadminoradbpfileinit.ora 
+
+8、startup EXCLUSIVE 
+============================================?
+有三种启动方式： 
+1、shutdown normal 
+   正常方式关闭数据库。 
+
+2、shutdown immediate 
+   立即方式关闭数据库。 
+   在SVRMGRL中执行shutdown immediate，数据库并不立即关闭， 
+   而是在Oracle执行某些清除工作后才关闭（终止会话、释放会话资源）， 
+   当使用shutdown不能关闭数据库时，shutdown immediate可以完成数据库关闭的操作。 
+
+3、shutdown abort 
+   直接关闭数据库，正在访问数据库的会话会被突然终止， 
+   如果数据库中有大量操作正在执行，这时执行shutdown abort后，重新启动数据库需要很长时间。
+   

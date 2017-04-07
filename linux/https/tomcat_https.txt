@@ -1,0 +1,173 @@
+tomcat+https协议的接口编写及客户端访问
+
+https无非就是http+ssl，也就是在http基础上进行证书上的校验，俗称安全的http
+
+
+具体操作步骤：
+
+1.对服务端进行修改，接口访问使用https
+
+    a.利用jdk自带的证书生成工具来生成一个key，keytool -genkey -alias cwh  -keyalg RSA -keystore e:/keys/cwhkey
+		@https_1.png
+		密钥库口令:123456（这个密码非常重要）
+		名字与姓氏:192.168.0.110（以后访问的域名或IP地址，非常重要，证书和域名或IP绑定）
+		组织单位名称:anything（随便填）
+		组织名称:anything（随便填）
+		城市:anything（随便填）
+		省市自治区:anything（随便填）
+		国家地区代码:anything（随便填）
+		注意一下：'您的名字与姓氏是什么'这里需要注意的，你所填的到时会作为是你的域名来用
+
+    b.tomcat/conf/server.xml启用ssl(把下面的这个本身是注释掉的开启)
+		取消注释，并添加两个属性 keystoreFile，keystorePass。
+		（添加：keystoreFile="对应你生成的key文件路径"，keystorePass="你的秘钥口令"）：
+		
+		<Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
+               maxThreads="150" scheme="https" secure="true"
+               clientAuth="false" sslProtocol="TLS" keystoreFile="E:/tomcat.keystore" keystorePass="123456" />
+
+    c.ok这样就可以了，
+		测试链接类似于这种 https://192.168.0.110:8443/your_project_name。
+
+		观察Tomcat输出日志会发现异常。
+
+		严重: Failed to initialize end point associated with ProtocolHandler ["http-apr-8443"]  
+		java.lang.Exception: Connector attribute SSLCertificateFile must be defined when using SSL with APR
+				at org.apache.tomcat.util.net.AprEndpoint.bind(AprEndpoint.java:484)  
+				at org.apache.tomcat.util.net.AbstractEndpoint.init(AbstractEndpoint.java:566)  
+				at org.apache.coyote.AbstractProtocol.init(AbstractProtocol.java:417)  
+				at org.apache.catalina.connector.Connector.initInternal(Connector.java:956)  
+				at org.apache.catalina.util.LifecycleBase.init(LifecycleBase.java:102)  
+				at org.apache.catalina.core.StandardService.initInternal(StandardService.java:559)  
+
+		解决方法是注释conf\server.xml文件中下面一行。
+
+		<!--<Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />-->
+
+		重启Tomcat ，这时可以看到浏览器已经可以打开 HTTPS 链接了。
+
+    
+
+   d.至此似乎服务端接口采用https协议很成功，但是问题来了，之前http://localhost:8080/springMVC/user/getUserByName/cwh这个地址已经暴露过，别人直接通过这个访问不也就绕过了https了么，那么解决办法就是让http访问重定向到https去，操作如下：在tomcat目录下的conf/web.xml此文件改位置添加如下代码代码：
+
+		 <security-constraint> 
+		  <web-resource-collection> 
+		  <web-resource-name>ssl</web-resource-name> 
+		  <url-pattern>/*</url-pattern> 
+		  </web-resource-collection> 
+		  <user-data-constraint> 
+		  <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+		  </user-data-constraint> 
+		</security-constraint>
+
+    
+
+    ok这样的话继续访问http://localhost:8080/springMVC/user/getUserByName/cwh的话会被重定向到https去：
+
+    至此https服务端完成
+
+2.下面进行httpclient客户端编写，
+    HttpClient httpclient = new DefaultHttpClient();  
+	String uri = "https://localhost/springMVC/user/getUserByName/cwh"; 
+	KeyStore trustStore  = KeyStore.getInstance(KeyStore.getDefaultType());
+	FileInputStream instream = new FileInputStream(new File("E:/keys/cwhkey"));
+	//密匙库的密码
+	trustStore.load(instream, "caiwenhao".toCharArray());
+	//注册密匙库
+	SSLSocketFactory socketFactory = new SSLSocketFactory(trustStore);
+	//不校验域名
+	socketFactory.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+	Scheme sch = new Scheme("https", 8443, socketFactory);//8443端口
+	httpclient.getConnectionManager().getSchemeRegistry().register(sch);
+
+注意一下：socketFactory.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);是不校验域名，如果注释掉的话，那么你访问的uri就会报如下错误：
+
+
+这时我们需要把域名localhost改为你的所设置的‘您的名字与姓氏是什么’的值，https://cwh/springMVC/user/getUserByName/cwh,这里的域名cwh是我们虚拟出来的所以我们      需要去hosts文件配置下让cwh这个域名指向本地：
+	打开C:\Windows\System32\drivers\etc，hosts文件添加127.0.0.1      cwh；
+    还需注意的是：Scheme sch = new Scheme("https", 8443, socketFactory);设置的是我们https的端口8443
+
+    客户端 完整代码如下：
+
+      public void HttpPostData() {  
+	      try { 
+	          HttpClient httpclient = new DefaultHttpClient();  
+	          String uri = "https://localhost/springMVC/user/getUserByName/cwh"; 
+	          KeyStore trustStore  = KeyStore.getInstance(KeyStore.getDefaultType());
+	          FileInputStream instream = new FileInputStream(new File("E:/keys/cwhkey"));
+	          //密匙库的密码
+	          trustStore.load(instream, "caiwenhao".toCharArray());
+	          //注册密匙库
+	          SSLSocketFactory socketFactory = new SSLSocketFactory(trustStore);
+	          //不校验域名
+	          socketFactory.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+	          Scheme sch = new Scheme("https", 8443, socketFactory);//8443端口
+	          httpclient.getConnectionManager().getSchemeRegistry().register(sch);
+	          HttpPost httppost = new HttpPost(uri);   	       
+	          JSONObject obj = new JSONObject();  
+	          HttpResponse response;  
+	          response = httpclient.execute(httppost);  
+	          //检验状态码，如果成功接收数据  
+	          int code = response.getStatusLine().getStatusCode();  
+	          System.out.println(code+"code");
+	          if (code == 200) {  
+	              String rev = EntityUtils.toString(response.getEntity());//返回json格式： {"id": "","name": ""}         
+	              obj= JSONObject.fromObject(rev);
+	              System.out.println(obj.get("username"));
+	              User user = (User)JSONObject.toBean(obj,User.class);
+	              System.out.println("返回数据==="+user.toString());
+	          } 
+	          } catch (ClientProtocolException e) { 
+	        	  e.printStackTrace();
+	          } catch (IOException e) {  
+	        	  e.printStackTrace();
+	          } catch (Exception e) { 
+	        	  e.printStackTrace();
+	          } 
+	     }
+		 
+3 真实域名开启过程
+
+使用自己生成的证书会遇到几个问题。
+
+一、浏览器会对 HTTPS 使用危险标识。
+
+我们开启 HTTPS 本意是为了更安全，增加用户信心。但是浏览器使用危险标识会适得其反，吓跑用户。
+
+二、浏览器默认不会加载非HTTPS域名下的JavaScript
+
+我了个擦，这和早年的禁用javascript差不多了。已经影响网页的正常运行了。
+
+三、移动设备显示页面空白
+
+手机浏览器打开页面，也会像桌面浏览器一样弹出是否加载不受信任的页面，在微信中打开则会一片空白。
+
+以上种种，导致自己生成的证书无法在生产环境使用。
+
+解决以上问题，需要购买CA的证书。不过我在阿里云上看到有免费的证书申请。https://www.aliyun.com/product/cas
+
+① 申请证书
+
+购买过程就不详细说了。照着阿里云的提示一步一步做就好了。
+
+证书生成后，会得到PFX类型的证书。
+
+② Tomcat 配置PFX证书
+
+打开 Tomcat 配置文件 conf\server.xml。
+
+取消注释，并添加三个属性 keystoreFile，keystoreType，keystorePass。
+
+<Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
+               maxThreads="150" scheme="https" secure="true"
+               clientAuth="false" sslProtocol="TLS" keystoreFile="/你的磁盘目录/订单号.pfx"
+    keystoreType="PKCS12"
+    keystorePass="订单号" />
+
+其中，keystoreFile是PFX证书文件地址，keystorePass是阿里云的订单号，keystoreType直接写PKCS12 。
+
+③ 测试真实域名
+
+重新启动Tomcat，访问你自己的域名，则可以正常使用了。浏览器会有绿色的域名标识，移动设备也正常了。至于http域名下的javascript，还是需要更换为https才能正常加载。
+
+对于要不要使用 https，需要根据实际情况具体考虑，https会比http慢一些，但是会更安全

@@ -1,7 +1,10 @@
 IntelliJ IDEA 16 本地LicenseServer激活（破解）
-两个注册地址：
+几个注册地址：
+http://idea.iteblog.com/key.php
+http://xdouble.cn:8888/
 http://idea.lanyus.com/
 http://idea.qinxi1992.cn/
+
 IntelliJ IDEA 是Java开发利器，用社区版不爽，干催就用旗舰版，这个是收费的，需要licence。 
 网上找到了一个帖子 http://blog.csdn.net/rickyit/article/details/50600723，可以通过服务器激活。 
 IntelliJ IDEA 16激活不了，架构师推荐了本地服务器激活。 (百度云上有)

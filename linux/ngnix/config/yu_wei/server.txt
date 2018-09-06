@@ -1,0 +1,28 @@
+server {
+    listen 80;
+    server_name me gateway-dev.yuweix.com;
+
+    location ~/ {
+        proxy_pass http://gateway_dev_server;
+        include /usr/local/nginx/conf/vhost/settings/gs/setting.conf;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+    }
+}
+server {
+    listen 80;
+    listen 2018;
+    server_name me websocket-dev.yuweix.com;
+
+
+    location ~/ {
+        proxy_pass http://websocket_dev_server;
+        include /usr/local/nginx/conf/vhost/settings/gs/setting.conf;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+    }
+}

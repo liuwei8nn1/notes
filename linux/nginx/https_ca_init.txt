@@ -1,0 +1,47 @@
+1 生成CA根证书
+	# 生成CA私钥
+	openssl genrsa -out ca.key 1024
+	# 生成CA根证书，-day指定证书有效期
+	openssl req -new -x509 -key ca.key -out ca.crt -days 365
+
+	就这么简单，第二步需要输入几个东西，虽然说乱填也可以，但建议按照提示来填，其中
+	需要特别注意，如果是生成CA证书的话，可以输入诸如
+	之类的，如果是生成服务端证书的话，必须输入网站的域名，可以输入泛域名，如*.haoji.me；
+
+2 生成服务端证书
+	和CA证书的生成不同的时，我们需要先生成一个证书请求文件
+	(CSR,Cerificate Signing Request)，有了这个文件之后再利用CA根证书生成最终的证书：
+
+	# 生成服务端私钥
+	openssl genrsa -out server.key 1024
+	# 生成证书请求文件
+	openssl req -new -key server.key -out server.csr
+	# 生成最终证书文件，-day指定证书有效期
+	openssl x509 -req -days 365 -sha256 -CA ca.crt -CAkey ca.key -CAcreateserial -in server.csr -out server.crt
+
+	但！是！各位看官先别急着去实践，以上证书我在Chrome55下测试没问题，但是Chrome61下测试提示
+	Subject Alternative Name missing错误：
+	The certificate for this site does not contain a Subject Alternative Name extension containing a domain name or IP address.
+	提示必须指定DNS Name或者IP地址，而指定这个必须要用v3的证书。生成v3证书只需要比上面多加2个参数-extfile openssl.cnf -extensions v3_req，但是多了一个额外的配置文件，这个文件里面可以填很多东西（完整配置文件参考这里），我们这里仅仅需要指定subjectAltName即可。
+
+	先准备一个名为openssl.cnf的文件，内容如下：
+
+	[v3_req]
+	subjectAltName = @alt_names
+
+	[alt_names]
+	DNS.1 = localhost.com
+	DNS.2 = www.localhost.com
+	DNS.3 = www.test123.com
+	#IP.1 = 127.0.0.1
+
+	解释一下，这里的alt_names指的是最终可以访问的域名或者IP，所以，其实一个证书是可以多个网站同时使用的。被访问域名只要满足DNS和IP中的一个，其证书就是合法的。
+
+	然后再来重新生成证书，为了对大家产生误导，我们再来一遍完整的过程：
+
+	# 生成服务端私钥
+	openssl genrsa -out server.key 1024
+	# 生成证书请求文件
+	openssl req -new -key server.key -out server.csr
+	# 生成最终证书文件，-day指定证书有效期
+	openssl x509 -req -days 365 -sha256 -CA ca.crt -CAkey ca.key -CAcreateserial -extfile openssl.cnf -extensions v3_req -in server.csr -out server.crt
